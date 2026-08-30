@@ -96,6 +96,67 @@ This root command launches the backend Express API (`pnpm run dev:api`) and the 
 - `pnpm run dev:api`: Runs exclusively the backend Express application.
 - `pnpm run dev:web`: Runs exclusively the React frontend application.
 
+## Deploying to Vercel
+
+The whole app deploys as a **single Vercel project**: the Vite frontend ships as
+static assets on the Edge Network, and the Express API runs as one Vercel
+Function mounted at `/api`.
+
+### Relevant files
+
+| File | Purpose |
+| --- | --- |
+| `vercel.json` | Build/install commands, output directory, function config, routing |
+| `api/index.mjs` | Vercel Function entry — re-exports the bundled Express server |
+| `artifacts/api-server/src/serverless.ts` | The `http.Server` (with the WebSocket relay attached) without a `listen()` call |
+
+The install and build commands in `vercel.json` invoke `pnpm@11.20.0` through
+`npx` on purpose. Vercel picks a pnpm version from the lockfile format, and this
+workspace needs pnpm 10+ features (`overrides` and `minimumReleaseAge` in
+`pnpm-workspace.yaml`, plus the `allowBuilds` map) — an older pnpm would silently
+ignore them and then fail `--frozen-lockfile`. Bump that pin in lockstep with the
+`packageManager` field in the root `package.json`.
+
+Routing is handled by two rewrites in `vercel.json`: `/api/*` goes to the
+function, and every other path falls through to `index.html` so client-side
+routing works on deep links. Static assets are matched from the filesystem
+first, so they are served directly.
+
+### One-time setup
+
+1. Import the repository at [vercel.com/new](https://vercel.com/new). Leave the
+   framework preset as **Other** — `vercel.json` already supplies the install
+   command, build command and output directory.
+2. Add the environment variables below under **Settings → Environment
+   Variables** (Production *and* Preview).
+3. Deploy. Every push to the default branch ships to production; other branches
+   get preview deployments.
+
+### Environment variables
+
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `DATABASE_URL` | yes | PostgreSQL connection string. Use Supabase's **connection pooler** URL (port `6543`), not the direct connection — serverless instances open connections independently. |
+| `AI_INTEGRATIONS_OPENAI_API_KEY` | yes | OpenAI API key used by the agents engine and the realtime voice relay. |
+| `AI_INTEGRATIONS_OPENAI_BASE_URL` | yes | e.g. `https://api.openai.com/v1`. |
+| `LOG_LEVEL` | no | Defaults to `info`. |
+
+`PORT` and `BASE_PATH` are **not** needed on Vercel — the `vercel-build` script
+supplies build-time values for the Vite config, and the API function does not
+bind a port.
+
+The database schema is not migrated during a Vercel build. Run `pnpm run db:push`
+yourself against the target database whenever the Drizzle schema changes.
+
+### Realtime voice
+
+The `/api/realtime/relay` WebSocket endpoint works on Vercel because the
+function exports an `http.Server` and the project runs on **Fluid Compute**
+(`"fluid": true` in `vercel.json`). Connections are bounded by the function's
+`maxDuration`, currently 300 seconds — a longer voice session will be
+disconnected and has to reconnect. Raise `maxDuration` on a plan that allows it
+if you need longer sessions.
+
 ## Acknowledgements
 
 Live Agent Hub started its journey as a sandbox migration of earlier iterations, primarily aiming to completely decouple away from Replit's environments into a pristine, fully local workstation environment, pushing the boundaries of AI agent realism.

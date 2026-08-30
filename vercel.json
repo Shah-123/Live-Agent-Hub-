@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npx --yes pnpm@11.20.0 install --frozen-lockfile",
+  "buildCommand": "npx --yes pnpm@11.20.0 run vercel-build",
+  "outputDirectory": "artifacts/stream-practice/dist/public",
+  "fluid": true,
+  "functions": {
+    "api/index.mjs": {
+      "maxDuration": 300
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
+  ]
+}

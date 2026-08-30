@@ -65,7 +65,9 @@ workspace@0.0.0
 .env.local
 .env.example
 
-# Artifacts (Gemini/AI generated)
-artifacts/
+# Artifacts
+# NOTE: artifacts/ holds the deployable app source (frontend + API server) and is
+# tracked on purpose so Vercel can build it from Git. Only its build output and
+# dependencies are ignored (covered by the `dist` / `node_modules` rules above).
 attached_assets/
 .agents/

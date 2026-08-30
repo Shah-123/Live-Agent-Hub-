@@ -72,3 +72,13 @@ overrides:
   # drizzle-kit uses esbuild internally on an older version that's vulnerable, this overrides it
   "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
   esbuild: "0.27.3"
+
+# pnpm 11 gates postinstall/build scripts on this map instead of the
+# `onlyBuiltDependencies` list above (kept for pnpm 10 compatibility). Every
+# package with a build script must be listed explicitly — an unlisted one makes
+# `pnpm install` fail, which is the behaviour we want.
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+  msw: true
+  unrs-resolver: true
