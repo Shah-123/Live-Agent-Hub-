@@ -136,10 +136,21 @@ first, so they are served directly.
 
 | Variable | Required | Notes |
 | --- | --- | --- |
-| `DATABASE_URL` | yes | PostgreSQL connection string. Use Supabase's **connection pooler** URL (port `6543`), not the direct connection — serverless instances open connections independently. |
+| `DATABASE_URL` | yes | PostgreSQL connection string. Must be Supabase's **connection pooler** URL, not the direct one — see below. |
 | `AI_INTEGRATIONS_OPENAI_API_KEY` | yes | OpenAI API key used by the agents engine and the realtime voice relay. |
 | `AI_INTEGRATIONS_OPENAI_BASE_URL` | yes | e.g. `https://api.openai.com/v1`. |
 | `LOG_LEVEL` | no | Defaults to `info`. |
+
+The pooler URL is not optional. Supabase's direct database host
+(`db.<project-ref>.supabase.co`) publishes **only an AAAA record** unless the
+project has the IPv4 add-on, and Vercel Functions egress over IPv4 — so the
+direct connection string that works locally will fail to resolve in production.
+The shared pooler (`aws-<n>-<region>.pooler.supabase.com`, user
+`postgres.<project-ref>`) has A records and works. Take the exact string from
+**Project Settings → Database → Connection string → Transaction pooler**; the
+`aws-<n>` prefix differs per project, so a hand-assembled hostname may point at
+a pooler that does not host your tenant and fails with `Tenant or user not
+found`.
 
 `PORT` and `BASE_PATH` are **not** needed on Vercel — the `vercel-build` script
 supplies build-time values for the Vite config, and the API function does not
